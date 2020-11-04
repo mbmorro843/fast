@@ -3,6 +3,7 @@ import { keyCodeEnter, keyCodeSpace } from "@microsoft/fast-web-utilities";
 import { StartEnd } from "../patterns/start-end";
 import { applyMixins } from "../utilities/apply-mixins";
 import { MenuItemRole } from "./menu-item.options";
+import { AnchoredRegion } from "../anchored-region";
 
 export { MenuItemRole };
 
@@ -52,6 +53,13 @@ export class MenuItem extends FASTElement {
      */
     @attr
     public checked: boolean;
+
+    /**
+     * reference to the anchored region
+     *
+     * @internal
+     */
+    public subMenuRegion: AnchoredRegion | string;
 
     /**
      * @internal

@@ -683,6 +683,10 @@ export class MenuItem extends FASTElement {
     // @internal (undocumented)
     handleMenuItemKeyDown: (e: KeyboardEvent) => boolean;
     role: MenuItemRole;
+    // Warning: (ae-forgotten-export) The symbol "AnchoredRegion" needs to be exported by the entry point index.d.ts
+    //
+    // @internal
+    subMenuRegion: AnchoredRegion | string;
 }
 
 // @internal
@@ -1165,8 +1169,6 @@ export class Tooltip extends FASTElement {
     // @internal (undocumented)
     horizontalScaling: AxisScalingMode;
     position: TooltipPosition;
-    // Warning: (ae-forgotten-export) The symbol "AnchoredRegion" needs to be exported by the entry point index.d.ts
-    //
     // @internal
     region: AnchoredRegion;
     // @internal (undocumented)
