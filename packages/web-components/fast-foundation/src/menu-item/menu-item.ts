@@ -1,4 +1,4 @@
-import { attr, FASTElement } from "@microsoft/fast-element";
+import { attr, DOM, FASTElement, observable } from "@microsoft/fast-element";
 import { keyCodeEnter, keyCodeSpace } from "@microsoft/fast-web-utilities";
 import { StartEnd } from "../patterns/start-end";
 import { applyMixins } from "../utilities/apply-mixins";
@@ -59,12 +59,52 @@ export class MenuItem extends FASTElement {
      *
      * @internal
      */
-    public subMenuRegion: AnchoredRegion | string;
+    public subMenuRegion: AnchoredRegion;
+
+    /**
+     * reference to the
+     *
+     * @internal
+     */
+    public nested: HTMLSlotElement;
+
+    /**
+     * The current viewport element instance
+     *
+     * @internal
+     */
+    @observable
+    public viewportElement: HTMLElement | null = null;
+    private viewportElementChanged(): void {
+        if (this.subMenuRegion !== null && this.subMenuRegion !== undefined) {
+            this.subMenuRegion.viewportElement = this.viewportElement;
+        }
+    }
+
+    /**
+     * @internal
+     */
+    public connectedCallback(): void {
+        super.connectedCallback();
+        this.addEventListener("change", this.handleSubmenuChange);
+    }
+
+    /**
+     * @internal
+     */
+    public disconnectedCallback(): void {
+        super.disconnectedCallback();
+        this.expanded = false;
+        this.removeEventListener("change", this.handleSubmenuChange);
+    }
 
     /**
      * @internal
      */
     public handleMenuItemKeyDown = (e: KeyboardEvent): boolean => {
+        if (e.defaultPrevented) {
+            return false;
+        }
         switch (e.keyCode) {
             case keyCodeEnter:
             case keyCodeSpace:
@@ -78,8 +118,19 @@ export class MenuItem extends FASTElement {
     /**
      * @internal
      */
-    public handleMenuItemClick = (e: MouseEvent): void => {
+    public handleMenuItemClick = (e: MouseEvent): boolean => {
+        if (e.defaultPrevented) {
+            return true;
+        }
+
         this.invoke();
+        return true;
+    };
+
+    private handleSubmenuChange = (e: Event): void => {
+        if (e.target !== null && ((e.target as unknown) as MenuItem) !== this) {
+            this.expanded = false;
+        }
     };
 
     private invoke = (): void => {
@@ -91,10 +142,34 @@ export class MenuItem extends FASTElement {
             case MenuItemRole.menuitemcheckbox:
             case MenuItemRole.menuitemradio:
                 this.checked = !this.checked;
+                this.$emit("change");
+                break;
+
+            case MenuItemRole.menuitem:
+                if ((this as HTMLElement).getAttribute("aria-haspopup")) {
+                    this.expanded = !this.expanded;
+                    if (this.expanded) {
+                        DOM.queueUpdate(this.setRegionProps);
+                    }
+                    this.$emit("expanded-change");
+                } else {
+                    this.$emit("change");
+                }
                 break;
         }
+    };
 
-        this.$emit("change");
+    /**
+     * updates the anchored region props after it has been
+     * added to the DOM
+     */
+    private setRegionProps = (): void => {
+        if (!this.expanded) {
+            return;
+        }
+        this.viewportElement = document.body;
+        this.subMenuRegion.viewportElement = this.viewportElement;
+        this.subMenuRegion.anchorElement = this as any;
     };
 }
 
