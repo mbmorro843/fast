@@ -1,9 +1,14 @@
 import { attr, DOM, FASTElement, observable } from "@microsoft/fast-element";
-import { keyCodeEnter, keyCodeSpace } from "@microsoft/fast-web-utilities";
+import {
+    keyCodeArrowRight,
+    keyCodeEnter,
+    keyCodeSpace,
+} from "@microsoft/fast-web-utilities";
 import { StartEnd } from "../patterns/start-end";
 import { applyMixins } from "../utilities/apply-mixins";
 import { MenuItemRole } from "./menu-item.options";
 import { AnchoredRegion } from "../anchored-region";
+import { Menu } from "../menu/menu";
 
 export { MenuItemRole };
 
@@ -25,6 +30,16 @@ export class MenuItem extends FASTElement {
     public disabled: boolean;
 
     /**
+     * Whether the item opens a submenu.
+     *
+     * @public
+     * @remarks
+     * HTML Attribute: submenu
+     */
+    @attr({ mode: "boolean" })
+    public submenu: boolean;
+
+    /**
      * The expanded state of the element.
      *
      * @public
@@ -33,6 +48,13 @@ export class MenuItem extends FASTElement {
      */
     @attr({ attribute: "expanded" })
     public expanded: boolean;
+    private expandedChanged(oldValue: boolean): void {
+        if (this.submenu && this.$fastController.isConnected && oldValue === true) {
+            this.submenuNodes.forEach(element => {
+                (element as Menu).collapseExpandedMenus();
+            });
+        }
+    }
 
     /**
      * The role of the element.
@@ -62,11 +84,12 @@ export class MenuItem extends FASTElement {
     public subMenuRegion: AnchoredRegion;
 
     /**
-     * reference to the
+     * reference to the slotted submenu nodes
      *
      * @internal
      */
-    public nested: HTMLSlotElement;
+    @observable
+    public submenuNodes: HTMLElement[] = [];
 
     /**
      * The current viewport element instance
@@ -86,7 +109,6 @@ export class MenuItem extends FASTElement {
      */
     public connectedCallback(): void {
         super.connectedCallback();
-        this.addEventListener("change", this.handleSubmenuChange);
     }
 
     /**
@@ -95,7 +117,6 @@ export class MenuItem extends FASTElement {
     public disconnectedCallback(): void {
         super.disconnectedCallback();
         this.expanded = false;
-        this.removeEventListener("change", this.handleSubmenuChange);
     }
 
     /**
@@ -110,6 +131,13 @@ export class MenuItem extends FASTElement {
             case keyCodeSpace:
                 this.invoke();
                 return false;
+
+            case keyCodeArrowRight:
+                //open/focus on submenu
+                if (this.submenu) {
+                    this.expanded = true;
+                    this.submenuNodes[0].focus();
+                }
         }
 
         return true;
@@ -127,12 +155,6 @@ export class MenuItem extends FASTElement {
         return false;
     };
 
-    private handleSubmenuChange = (e: Event): void => {
-        if (e.target !== null && ((e.target as unknown) as MenuItem) !== this) {
-            // this.expanded = false;
-        }
-    };
-
     private invoke = (): void => {
         if (this.disabled) {
             return;
@@ -146,7 +168,7 @@ export class MenuItem extends FASTElement {
                 break;
 
             case MenuItemRole.menuitem:
-                if ((this as HTMLElement).getAttribute("aria-haspopup")) {
+                if (this.submenu) {
                     this.expanded = !this.expanded;
                     if (this.expanded) {
                         DOM.queueUpdate(this.setRegionProps);
