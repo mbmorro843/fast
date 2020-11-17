@@ -1,5 +1,6 @@
 import { attr, DOM, FASTElement, observable } from "@microsoft/fast-element";
 import {
+    keyCodeArrowLeft,
     keyCodeArrowRight,
     keyCodeEnter,
     keyCodeSpace,
@@ -107,25 +108,11 @@ export class MenuItem extends FASTElement {
     /**
      * @internal
      */
-    public connectedCallback(): void {
-        super.connectedCallback();
-    }
-
-    /**
-     * @internal
-     */
-    public disconnectedCallback(): void {
-        super.disconnectedCallback();
-        this.expanded = false;
-    }
-
-    /**
-     * @internal
-     */
     public handleMenuItemKeyDown = (e: KeyboardEvent): boolean => {
         if (e.defaultPrevented) {
             return false;
         }
+
         switch (e.keyCode) {
             case keyCodeEnter:
             case keyCodeSpace:
@@ -135,8 +122,16 @@ export class MenuItem extends FASTElement {
             case keyCodeArrowRight:
                 //open/focus on submenu
                 if (this.submenu) {
-                    this.expanded = true;
-                    this.submenuNodes[0].focus();
+                    this.invoke();
+                }
+                return false;
+
+            case keyCodeArrowLeft:
+                //close submenu
+                if (this.submenu) {
+                    this.expanded = false;
+                    this.focus();
+                    return false;
                 }
         }
 
@@ -147,11 +142,29 @@ export class MenuItem extends FASTElement {
      * @internal
      */
     public handleMenuItemClick = (e: MouseEvent): boolean => {
-        if (e.defaultPrevented) {
+        if (e.defaultPrevented || this.disabled) {
             return false;
         }
 
         this.invoke();
+        return false;
+    };
+
+    /**
+     * @internal
+     */
+    public handleAnchoredRegionChange = (e: Event): boolean => {
+        if (e.defaultPrevented || this.disabled || this.submenuNodes.length === 0) {
+            return false;
+        }
+
+        this.subMenuRegion.removeEventListener("change", this.handleAnchoredRegionChange);
+
+        DOM.queueUpdate(() => {
+            this.setAttribute("tabindex", "-1");
+            this.submenuNodes[0].focus();
+        });
+
         return false;
     };
 
@@ -192,6 +205,7 @@ export class MenuItem extends FASTElement {
         this.viewportElement = document.body;
         this.subMenuRegion.viewportElement = this.viewportElement;
         this.subMenuRegion.anchorElement = this as any;
+        this.subMenuRegion.addEventListener("change", this.handleAnchoredRegionChange);
     };
 }
 
