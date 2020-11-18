@@ -3,8 +3,6 @@ import { inRange, invert } from "lodash-es";
 import {
     isHTMLElement,
     keyCodeArrowDown,
-    keyCodeArrowLeft,
-    keyCodeArrowRight,
     keyCodeArrowUp,
     keyCodeEnd,
     keyCodeHome,
@@ -100,7 +98,7 @@ export class Menu extends FASTElement {
                 return;
             case keyCodeEnd:
                 // set focus on last item
-                this.setFocus(this.domChildren().length - 1, -1);
+                this.setFocus(this.menuItems.length - 1, -1);
                 return;
             case keyCodeHome:
                 // set focus on first item
@@ -119,6 +117,8 @@ export class Menu extends FASTElement {
      */
     public handleFocusOut = (e: FocusEvent) => {
         if (!this.contains(e.relatedTarget as Element)) {
+            this.collapseExpandedMenus();
+
             // find our first focusable element
             const focusIndex: number = this.menuItems.findIndex(this.isFocusableElement);
 
@@ -156,7 +156,7 @@ export class Menu extends FASTElement {
         }
 
         if (changedItem.expanded) {
-            if (this.expandedItem !== null) {
+            if (this.expandedItem !== null && this.expandedItem !== changedItem) {
                 this.expandedItem.expanded = false;
             }
             this.expandedItem = changedItem;
@@ -176,7 +176,6 @@ export class Menu extends FASTElement {
                 "tabindex",
                 item === focusIndex ? "0" : "-1"
             );
-            // this.menuItems[item].addEventListener("blur", this.handleMenuItemBlur);
             this.menuItems[item].addEventListener(
                 "expanded-change",
                 this.handleExpandedChanged
@@ -186,7 +185,6 @@ export class Menu extends FASTElement {
 
     private resetItems = (oldValue: any): void => {
         for (let item: number = 0; item < oldValue.length; item++) {
-            // oldValue[item].removeEventListener("blur", this.handleMenuItemBlur);
             oldValue[item].removeEventListener(
                 "expanded-change",
                 this.handleExpandedChanged
@@ -225,20 +223,6 @@ export class Menu extends FASTElement {
     private isFocusableElement = (el: Element): el is HTMLElement => {
         return this.isMenuItemElement(el) && !this.isDisabledElement(el);
     };
-
-    // private handleMenuItemBlur = (e: FocusEvent): void => {
-    //     const target = e.currentTarget as Element;
-    //     const focusIndex: number = this.menuItems.indexOf(target);
-
-    //     if (this.isDisabledElement(target)) {
-    //         target.blur();
-    //         return;
-    //     }
-
-    //     if (focusIndex !== this.focusIndex && focusIndex !== -1) {
-    //         this.setFocus(focusIndex, focusIndex > this.focusIndex ? 1 : -1);
-    //     }
-    // };
 
     private setFocus(focusIndex: number, adjustment: number): void {
         const children: Element[] = this.menuItems;
