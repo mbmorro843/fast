@@ -52,6 +52,14 @@ export class Menu extends FASTElement {
     }
 
     /**
+     * @internal
+     */
+    public disconnectedCallback(): void {
+        super.disconnectedCallback();
+        this.menuItems = [];
+    }
+
+    /**
      * Focuses the first item in the menu.
      *
      * @public
@@ -70,14 +78,6 @@ export class Menu extends FASTElement {
             this.expandedItem.expanded = false;
             this.expandedItem = null;
         }
-    }
-
-    /**
-     * @internal
-     */
-    public disconnectedCallback(): void {
-        super.disconnectedCallback();
-        this.menuItems = [];
     }
 
     /**
